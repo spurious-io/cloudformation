@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+$: << File.join(File.dirname(__FILE__), "..", "lib")
+
+require 'rack'
+require 'spurious/cloudformation/application'
+
+Rack::Handler::WEBrick.run Spurious::Cloudformation::Application.new
+
+
