@@ -2,12 +2,15 @@ require 'rack/response'
 require 'rack/request'
 require 'json'
 require 'spurious/cloudformation/parser'
+require 'spurious/cloudformation/service/dynamodb'
 
 module Spurious
   module Cloudformation
     class Application
 
       def call(env)
+        setup_aws
+
         request = Rack::Request.new(env)
         query_params = request.POST
 
@@ -16,10 +19,12 @@ module Spurious
         template_params     = params_from_template(template).merge(override_params)
 
         substitube_parameters(query_params['TemplateBody'], template_params)
+        service_data = Spurious::Cloudformation::Parser.new(query_params['StackName']).parse(template[:Resources], template_params)
 
-        Spurious::Cloudformation::Parser.new.parse(template[:Resources], template_params)
-
-        puts template
+        service_data[:dynamo].each do |data|
+          puts "Creating the following table: #{data}"
+          Spurious::Cloudformation::Service::Dynamodb.create(data)
+        end
 
         response = Rack::Response.new(
           '',
@@ -30,6 +35,10 @@ module Spurious
       end
 
       private
+
+      def setup_aws
+
+      end
 
       def params_from_template(template)
         template[:Parameters].reduce({}) do |object, (key, value)|
